@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/io_client.dart' as http;
+import 'dart:convert';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -9,12 +12,45 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   bool _obscureText = true;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final bool _isLoading = false;
+
+  Future<void> _login() async {
+    final username = _usernameController.text;
+    final password = _passwordController.text;
+
+    var url = Uri.parse('https://intranetcorporativo.avantetextil.com/Auth/Applogin');
+
+    var client = HttpClient()
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+
+    var ioClient = http.IOClient(client);
+
+    try {
+      final response = await ioClient.post(
+        url,
+        headers: {
+          HttpHeaders.contentTypeHeader: 'application/json',
+        },
+        body: jsonEncode({
+          "username": username,
+          "password": password,
+        }),
+      );
+
+      print('STATUS: ${response.statusCode}');
+      print('BODY: ${response.body}');
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/images/background.png'),
             fit: BoxFit.cover,
@@ -26,74 +62,50 @@ class _SignInScreenState extends State<SignInScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                // Shield Logo
                 Container(
                   width: 250,
                   height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(0, 0, 0, 0),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-  
-                  margin: EdgeInsets.only(top: 30),
-                  padding: const EdgeInsets.all(0),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                  ),
+                  margin: const EdgeInsets.only(top: 30),
+                  child: Image.asset('assets/images/logo.png'),
                 ),
-                // Sign in text
-                Container(
-                  margin: EdgeInsets.only(bottom: 10),
-                  child: const Text(
-                    '¡Bienvenido!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                    ),
-                  ),
+                const Text(
+                  '¡Bienvenido!',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
                 ),
-
-                Container(
-                  margin: EdgeInsets.only(bottom: 20),
-                  child: const Text(
-                    'Inicia Sesión en tu Cuenta',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontStyle: FontStyle.italic,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2,
-                    ),
-                  ),
+                const Text(
+                  'Inicia Sesión en tu Cuenta',
+                  style: TextStyle(fontStyle: FontStyle.italic, fontSize: 20),
                 ),
                 const SizedBox(height: 22),
-                // Email field
+
+                // Usuario
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: TextField(
+                    controller: _usernameController,
                     style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
                       prefixIcon: Icon(Icons.person, color: Colors.white),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 16),
                       hintText: 'Usuario',
                       hintStyle: TextStyle(color: Color.fromARGB(151, 255, 255, 255)),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
-                // Password field
+
+                // Contraseña
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: TextField(
+                    controller: _passwordController,
                     obscureText: _obscureText,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
@@ -110,35 +122,29 @@ class _SignInScreenState extends State<SignInScreen> {
                         },
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
                       hintText: 'Contraseña',
                       hintStyle: const TextStyle(color: Color.fromARGB(151, 255, 255, 255)),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 32),
-                // Login button
+
+                // Botón login
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Handle login
-                    },
+                    onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF000000),
+                      backgroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
                     ),
-                    child: const Text(
-                      "Iniciar Sesion",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "Iniciar Sesion",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
               ],
@@ -151,6 +157,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 }
